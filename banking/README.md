@@ -48,7 +48,7 @@ banking/
 │   ├── logging_config.py    # Centralized logging setup
 │   └── main.py              # Application entry point
 │
-├── tests/                   # Unit tests (basic)
+├── tests/                   # Unit tests for business logic modules (basic)
 ├── customer_database.json   # Customer data storage
 ├── administrative_database.json
 ├── account_numbers.json
