@@ -1,9 +1,5 @@
 # Transaction.py
-
-from . import constants
 from . import repository
-
-
 
 class Transaction:
 

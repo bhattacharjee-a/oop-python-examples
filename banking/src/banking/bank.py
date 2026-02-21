@@ -1,9 +1,14 @@
 # Bank.py
 
-import admin 
-from logging_config import logger
-import customer
-import constants
+'''from banking import admin
+from banking import customer
+from banking.logging_config import logger
+from banking import constants'''
+from . import admin
+from . import customer
+from .logging_config import logger
+from . import constants
+
 
 class Bank:
 

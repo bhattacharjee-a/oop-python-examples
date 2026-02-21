@@ -1,0 +1,26 @@
+# Virtual environment
+.venv/
+
+# Pytest cache
+.pytest_cache/
+
+# IDE files
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+bank.log
+
+# Local data
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+#vscode 
+.vscode/

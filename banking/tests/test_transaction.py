@@ -3,7 +3,6 @@
 from banking import repository
 from banking.transaction import Transaction
 
-
 def setup_function():
     # Reset test database before each test
     repository.save_customer_db({

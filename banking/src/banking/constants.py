@@ -8,6 +8,4 @@ ADMIN_DB = "data/administrative_database.json"
 ACCOUNT_NUMBERS = "data/account_numbers.json"
 LOG_FILE = "bank.log"
 
-
-
 DEBUG_MODE = True

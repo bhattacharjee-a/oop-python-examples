@@ -1,9 +1,12 @@
 # Admin.py
-
-import constants
-import repository
-from logging_config import logger
-from account import Account
+'''from banking import constants
+from banking import repository
+from banking.logging_config import logger
+from banking.account import Account'''
+from .account import Account
+from . import repository
+from .logging_config import logger
+from . import constants
 
 class Admin:
 
