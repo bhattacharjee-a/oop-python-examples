@@ -1,9 +1,5 @@
 # Bank.py
 
-'''from banking import admin
-from banking import customer
-from banking.logging_config import logger
-from banking import constants'''
 from . import admin
 from . import customer
 from .logging_config import logger

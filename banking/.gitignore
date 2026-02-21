@@ -6,14 +6,20 @@
 
 # IDE files
 .idea/
+.vscode/
 
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # Logs
 *.log
 bank.log
+
+# Virtual environment
+.venv/
 
 # Local data
 data/
@@ -21,6 +27,3 @@ data/
 # OS
 .DS_Store
 Thumbs.db
-
-#vscode 
-.vscode/
