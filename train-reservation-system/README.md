@@ -1,6 +1,13 @@
 # 🚆 Train Reservation System
 
-A simple **console-based Train Reservation System built using Python classes and basic OOP concepts**.
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![OOP](https://img.shields.io/badge/Paradigm-OOP-green)
+![Status](https://img.shields.io/badge/Project-Completed-brightgreen)
+![Level](https://img.shields.io/badge/Level-Beginner-lightgrey)
+
+git add README.md
+git commit -m "Added project badges to README"
+git pushA simple **console-based Train Reservation System built using Python classes and basic OOP concepts**.
 
 It demonstrates:
 - Class creation
@@ -83,13 +90,14 @@ No external dependencies are required.
 
 ## ▶️ How to Run
 
-
+```bash
 1.  Navigate to the project root directory.
 2.  Run:
 
 ```{=html}
 <!-- -->
-```
+```bash
+
     python src/train.py         🚆 Train Booking System (First OOP Project)
 
 Make sure the `data/` folder exists.\
@@ -112,5 +120,6 @@ These improvements are demonstrated in later, more advanced projects.
 
 ## 📌 Author
 **Bhattacharjee**  
+
 Built as part of Python and GitHub learning journey, focusied on
 writing clean, incremental, and evolution-driven projects.
