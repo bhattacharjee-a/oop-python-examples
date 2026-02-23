@@ -1,0 +1,1134 @@
+"""
+Python Banking System Package
+
+This package contains the core modules for the
+console-based banking management system.
+
+Modules:
+- bank
+- admin
+- customer
+- account
+- transaction
+- repository
+- constants
+- logging_config
+"""
+
+# Optional: Expose key classes for easier imports
+
+from .bank import Bank
+from .admin import Admin
+from .customer import Customer
+from .account import Account
+from .transaction import Transaction
+
+# Repository.py
+
+import json
+from . import constants
+
+
+# ---------- Admin Database ----------
+
+def load_admin_db():
+    try:
+        with open(constants.ADMIN_DB, "r+") as file:
+            content = file.read().strip()
+    except (FileNotFoundError, FileExistsError):
+        with open(constants.ADMIN_DB, "w+") as file:
+            content = file.read().strip()
+
+    if content == "":
+        administrative_database = {}
+    else:
+        administrative_database = json.loads(content)
+
+    return administrative_database
+
+
+def save_admin_db(administrative_database):
+    with open(constants.ADMIN_DB, "w") as file:
+        json.dump(administrative_database, file, indent=2)
+
+
+# ---------- Customer Database ----------
+
+def load_customer_db():
+    try:
+        with open(constants.CUSTOMER_DB, "r+") as file:
+            content = file.read().strip()
+    except (FileNotFoundError, FileExistsError):
+        with open(constants.CUSTOMER_DB, "w+") as file:
+            content = file.read().strip()
+
+    if content == "":
+        customer_database = {}
+    else:
+        customer_database = json.loads(content)
+
+    return customer_database
+
+
+def save_customer_db(customer_database):
+    with open(constants.CUSTOMER_DB, "w") as file:
+        json.dump(customer_database, file, indent=2, sort_keys=True)
+
+
+# ---------- Account Numbers ----------
+
+def load_account_numbers():
+    acc_list = []
+
+    try:
+        with open(constants.ACCOUNT_NUMBERS, "r+") as file:
+            for line in file:
+                line = line.strip()
+                if line.isdigit():
+                    acc_list.append(int(line))
+        acc_list.sort()
+
+    except FileNotFoundError:
+        with open(constants.ACCOUNT_NUMBERS, "w") as file:
+            pass
+
+    return acc_list
+
+
+def save_account_numbers(acc_list, acc_num):
+    if acc_num in acc_list:
+        raise ValueError("Account already exists")
+    else:
+        acc_list.append(int(acc_num))
+
+    with open(constants.ACCOUNT_NUMBERS, "w") as file:
+        for num in acc_list:
+            file.write(f"{num}\n")
+
+
+# ---------- Repository Helper Functions ----------
+
+def create_customer(account_no, name, phone, password, dob, balance):
+    db = load_customer_db()
+
+    if str(account_no) in db:
+        raise ValueError("Account already exists")
+
+    db[str(account_no)] = {
+        "Name": name,
+        "Phone Number": phone,
+        "Password": password,
+        "D.O.B": dob,
+        "Balance": balance
+    }
+
+    save_customer_db(db)
+
+
+def customer_exists(account_no):
+    db = load_customer_db()
+    return str(account_no) in db
+
+
+def get_customer(account_no):
+    db = load_customer_db()
+    return db.get(str(account_no))
+
+
+def create_customer(account_no, name, phone, password, dob, balance):
+    db = load_customer_db()
+
+    if str(account_no) in db:
+        raise ValueError("Account already exists")
+
+    db[str(account_no)] = {
+        "Name": name,
+        "Phone Number": phone,
+        "Password": password,
+        "D.O.B": dob,
+        "Balance": balance
+    }
+
+    save_customer_db(db)
+
+ALLOWED_FIELDS = {"Name", "Phone Number", "Password", "D.O.B", "Balance"}
+
+def update_customer(account_no, updated_fields: dict):
+    db = load_customer_db()
+
+    if str(account_no) not in db:
+        raise KeyError("Account not found!")
+
+    for key in updated_fields:
+        if key not in ALLOWED_FIELDS:
+            raise ValueError(f"Invalid field: {key}")
+
+    db[str(account_no)].update(updated_fields)
+    save_customer_db(db)
+
+
+# ---------- Business Operations ----------
+
+def update_balance(account_no, new_balance):
+    update_customer(account_no, {"Balance": new_balance})
+
+
+def delete_customer(account_no):
+    db = load_customer_db()
+
+    if str(account_no) not in db:
+        raise KeyError("Account not found")
+
+    db.pop(str(account_no))
+    save_customer_db(db)
+# Logging_Config.py
+import logging
+from .constants import LOG_FILE, DEBUG_MODE
+
+DEBUG_MODE = True
+level = logging.DEBUG if DEBUG_MODE else logging.INFO
+
+logger = logging.getLogger()                                        # "getLogger()" Telling & Setting Rules. Empty means root logger, Default Name of whole Application.
+logger.setLevel(level)                                              # "setLevel" Setting Worning Level Rules.
+
+# ---------- File Handler ----------
+#file_handler = logging.FileHandler(filename, mode, encoding, delay) 
+#filename (required): The name (and path) of the file where the logs will be written. If the file doesn't exist, Python will automatically create it.
+#mode (optional): File opening mode. The default is 'a' (append).
+#encoding (optional): Used to open the file. The default is None, means the system default encoding is used.
+#delay (optional): If set to True, the file is not opened until the first log record is emitted. Useful if the file path not available.
+file_handler = logging.FileHandler(LOG_FILE, mode="a")            # "a" = Append, "w" = wipe file every time
+file_handler.setLevel(level)
+
+# ---------- Console Handler ----------
+console_handler = logging.StreamHandler()
+console_handler.setLevel(level)
+
+# ---------- Formatter ----------
+formatter = logging.Formatter(
+    "%(asctime)s | %(levelname)s | %(message)s"                    # "TIME | LEVEL | TEXT"
+)
+
+file_handler.setFormatter(formatter)                               # setFormatter(): Used to define how the log record's attributes (message, time, log level, etc.) should be arranged.
+console_handler.setFormatter(formatter)                            # formatter: It holds the format of the final logged message. 
+
+# ---------- Attach Handlers ----------
+
+if not logger.handlers:
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+#print("✅ Logging configured")   # DEBUG CONFIRMATION
+
+# Admin.py
+
+from .account import Account
+from . import repository
+from .logging_config import logger
+from . import constants
+
+class Admin:
+
+    def __init__(self, administrative_info, customer_database):
+        self.administrative_database = administrative_info
+        self.customer_database = customer_database
+
+    @classmethod
+    def verification(cls):
+
+        administrative_database = repository.load_admin_db()
+        customer_database = repository.load_customer_db()
+
+        if "Name" not in administrative_database:
+            administrative_database["Name"] = []
+
+        if "Password" not in administrative_database:
+            administrative_database["Password"] = "admin"
+        
+        for attempt in range(constants.MAX_ATTEMPTS):                   # verifying Existing Customer & Handling wrong Inputs.
+            name = input("Enter Name:").upper()
+            password = input("Enter Administrative Password:")
+                    
+            if name not in administrative_database["Name"]:            # verifying Administrative Details.
+                logger.warning("Name Doesn't Exist!")
+                continue
+
+            if administrative_database["Password"] != password:
+                logger.warning("Invalid Password!")
+                continue
+
+            logger.debug("Database Loaded Successfully!")
+            logger.info("Information Found!")
+            
+            obj = Admin(administrative_database, customer_database)
+            obj.main_menu()
+            
+            
+
+        if attempt == (constants.MAX_ATTEMPTS-1):
+            logger.error("Too many failed attempts.")
+
+
+        return
+
+    def main_menu(self):
+
+        for attempt in range(constants.MAX_ATTEMPTS):    
+            operation=input("Choose operation:\n1. Member Management\n2. Customer Management\n3. Administrative Password Management.\n4. Print Database\n5.Exit:\n\nEnter choice:")
+            
+            if operation == "1":
+                self.member_management()
+                return
+            elif operation == "2":
+                self.customer_management()
+                return
+            elif operation == "3":
+                self.password_management()
+                return
+            elif operation == "4":
+                self.print_database()
+                return
+            elif operation == "5":
+                return
+            else:
+                logger.warning("Invalid Input! Try Again.")
+                
+        return
+
+    def member_management(self):
+
+        for attempt in range(constants.MAX_ATTEMPTS):
+
+            operation=input("Choose operation:\n1. Adding Member \n2. Removing Member.\n3. Exit:\n\nEnter choice:")
+            
+            if operation == "1":
+
+                name = input("Enter New Name:").upper()
+
+                if name in self.administrative_database["Name"]:
+                    logger.info("Name Already Exist!")
+                    continue
+
+                self.administrative_database["Name"].append(name)
+                repository.save_admin_db(self.administrative_database)
+                logger.info("Member Added Successfully!")
+                return
+
+            elif operation == "2":
+
+                name = input("Enter Name To Remove:").upper()
+                if name in self.administrative_database["Name"]: 
+
+                    self.administrative_database["Name"].remove(name)
+                    repository.save_admin_db(self.administrative_database)
+                    logger.info("Member Removed Successfully!")
+                    return
+                    
+                else:
+                    logger.warning("Name Doesn't Exist. Try Again.")
+
+            else:
+
+                logger.warning("Wrong Input! Try Again.")
+
+            attempt += 1
+
+        return
+
+    def customer_management(self):
+
+        for attempt in range(constants.MAX_ATTEMPTS):
+
+            operation=str(input("Choose operation:\n1. Adding Customer. \n2. Removing Customer.\n3. Exit:\n\nEnter choice:"))
+                
+            if operation == "1":
+
+                name = input("Enter Your Name:").upper()
+                ph_number = input("Enter Your Phone Number (Without +91):")
+
+                try:
+                    phone = int(ph_number)          
+                except ValueError:
+                    logger.warning("Enter Valid Phone Number!")
+                    continue
+
+                password = input("Enter Password:")
+                dob = input("Enter Your D.O.B (DD/MM/YYYY):")
+                amount = input("Enter The opening Balance Ammout:").strip()
+
+                try:
+                    balance = int(amount)          
+                except ValueError:
+                    logger.warning("Balance amount must be a valid number")
+                    continue
+
+                acc_no, data = Account.account_open(name, phone, password, dob, balance)
+                print(f"Account Created Successfully!\nAccount Number: {acc_no}\n{data}")
+
+            elif operation == "2":
+               
+                account_no = input ("Enter Customer Account Number:")
+
+                if not repository.customer_exists(account_no):
+                    logger.warning("Invalid Account Number / Customer Doesn't Exist")
+                    continue
+
+                # Removing Account Number From Existing Account Number List.
+                acc_list = repository.load_account_numbers()
+                acc_list.remove(int(account_no))
+                repository.save_account_numbers(acc_list)
+
+                # Removing Customer Details From Database.               
+                repository.delete_customer(account_no)
+
+                logger.info("Account Deleted Successfully.")
+                return
+
+            elif operation == "3":
+                return
+                
+            else:
+                logger.warning("Wrong Input! Try Again.")
+
+            
+        return
+
+    def password_management(self):
+        
+        for attempt in range(constants.MAX_ATTEMPTS):
+
+            operation=input("Choose operation:\n1. Current Password \n2. Changing Password.\n3. Exit:\n\nEnter choice:")
+                
+            if operation == "1":
+                print(f"Current Administrative Password: {self.administrative_database['Password']}")
+
+            elif operation == "2":
+                old_pass=str(input("Enter Current Administrative Password:")).strip()
+
+                if self.administrative_database["Password"] != old_pass:
+                    logger.warning("Entered Wrong Password! Try Again.")
+                    continue
+                   
+                new_pass=str(input("Enter New Administrative Password:")).strip()
+                self.administrative_database["Password"] = new_pass
+                repository.save_admin_db(self.administrative_database)
+                logger.info("Password Updated Successfully.")
+
+            elif operation == "3":
+                return
+
+            attempt += 1
+            
+        return
+
+    def print_database(self):
+        
+        for attempt in range(constants.MAX_ATTEMPTS):
+
+            operation=input("Choose operation:\n1. Print Administrative Database \n2. Print Customer Database.\n3. Exit:\n\nEnter choice:")
+            if operation == "1":
+
+                for key,value in self.administrative_database.items():
+
+                    if key == "Password":
+                        print(f"{key}: *****")
+                    else:
+                        print(f"{key}:{value}")
+
+            elif operation == "2":
+                
+                for account, details in self.customer_database.items():
+
+                    print(f"{account}:",end="{")
+                            
+                    for key,value in details.items():
+                        
+                        if key =="Password":                    # Replacing Password With "*****".
+                            print(f"'{key}':***, ",end="")
+
+                        else:
+                            if key == list(details.keys())[-1]: # Access last key
+                                print(f"'{key}': '{value}'", end="")
+                            else:
+                                print(f"'{key}': '{value}', ", end="")  
+                    print("}")
+                
+            elif operation == "3":
+                return
+                
+            else:
+                logger.warning("Invalid Input! Try Again.")                
+                
+        return
+# Customer.py
+
+from .transaction import Transaction
+from .account import Account
+from . import repository
+from .logging_config import logger
+from . import constants
+
+class Customer:
+
+    def __init__(self, customer_database, account_no, name, phone, dob, balance):
+        self.customer_info = customer_database
+        self.account_no = account_no
+        self.name = name
+        self.phone = phone
+        self.dob = dob
+
+        self.trans = Transaction(account_no)
+        self.account =  Account(customer_database,account_no)
+        
+    @staticmethod
+    def main_menu():
+    # CLI-driven flow controller (input + routing handled together intentionally)
+       
+        ans2="y"
+        attempt   = 0
+        login_failed = False
+
+
+        while ans2=="y" and attempt <constants.MAX_ATTEMPTS:                     # Handling Wrong Attemps.
+            
+            attempt  += 1
+
+            if login_failed == False:
+               
+                #reply = input("Are You An Existing Customer (Y/N):").lower()
+                reply = input(
+                        "1. Sign Up.\n"
+                        "2. Login.\n"
+                        "Choose an option:")
+
+
+
+            if reply =="2" and login_failed == False:
+
+                login_failed = Customer.verification()
+                
+                if login_failed == False:
+                    return                 
+                elif login_failed == True: 
+                    continue
+                else:
+                    return
+                
+            elif reply =="1" or login_failed == True:                   # Handling New Customer For Creaing An Account.
+
+                if login_failed == True:
+
+                    ans1 = input("Do You Want to Create An Account (Y/N):").lower()
+                        
+                if reply =="1" or ans1 == "y":
+
+                    name = input("Enter Your Name:").upper()
+                    ph_number = input("Enter Your Phone Number (Without +91):")
+
+                    try:
+                        phone = int(ph_number)          
+                    except ValueError:
+                        logger.warning("Enter a valid number")
+                        continue
+
+                    password = input("Enter Password:")
+                    dob = input("Enter Your D.O.B (DD/MM/YYYY):")
+                    amount = input("Enter The opening Balance Ammout:").strip()
+
+                    try:
+                        balance = int(amount)          
+                    except ValueError:
+                        logger.warning("Enter a valid amount.")
+                        continue
+                    
+                    try:
+                        result = Account.account_open(name, phone, password, dob, balance)
+                    except ValueError as e:
+                        logger.warning(str(e))
+                        continue
+
+                    if result is None:
+                        continue   # ask again
+                    
+
+                    acc_no, data = result
+
+                    print(f"Account Number: {acc_no}")
+                    print(data)
+
+                    return
+                
+                elif ans1 =="n": 
+                    return
+                
+                else:
+                    logger.warning("Invalid input! Try Again.")
+
+            else:
+                logger.warning("Invalid input! Try Again.")
+                        
+            #attempt  += 1
+            
+        if attempt == constants.MAX_ATTEMPTS:
+            logger.error("Too many failed attempts.")
+
+        return
+        
+    @classmethod
+    def verification(cls):
+        
+        customer_database=repository.load_customer_db()
+        
+        for attempt in range(constants.MAX_ATTEMPTS):
+            account = input("Enter Account Number: ").strip()
+            password = input("Enter Password: ").strip()
+
+            if account not in customer_database:
+                logger.warning("Invalid account number")
+                continue
+
+            if customer_database[account]["Password"] != password:
+                logger.warning("Wrong password")
+                continue
+
+            # Loading Customer Details.
+            Customer_info = customer_database[account]
+            logger.debug("Database Loaded Successfully!")
+            logger.info("Customer login Successful.")
+
+            obj = cls(customer_database = customer_database, account_no=account, name=Customer_info["Name"], phone=Customer_info["Phone Number"], dob=Customer_info["D.O.B"], balance=Customer_info["Balance"])
+            obj.account_handling()
+            return 
+            
+        return True
+
+
+    def account_handling(self):
+            
+        for attempt in range(constants.MAX_ATTEMPTS):                   
+                
+            operation=input("Choose operation:\n1. Balance & Transaction.\n2. Account Management\n3. Exit:\n\nEnter choice:")
+                    
+            if operation == "1":
+                self.transaction()
+                return
+            elif operation == "2":
+                self.account_management()
+                return
+            elif operation == "3":
+                return
+                    
+            else:
+                logger.warning("Invalid Input! Try again.")
+                    
+        return
+
+    def transaction(self):
+        
+        for attempt in range(constants.MAX_ATTEMPTS):
+            
+            operation=input("Choose operation:\n1. Balance \n2. Deposit\n3. Withdraw\n4. Exit:\n\nEnter choice:")
+
+            if operation == "1":
+
+                print(f"Current Balance: {self.trans.get_balance()}")
+
+            elif operation == "2":
+
+                value = input("Enter deposit amount: ").strip()
+
+                try:
+                    amount = int(value)          
+                except ValueError:
+                    logger.warning("Amount must be a valid number")
+                    continue
+                
+                try:
+                    new_balance = self.trans.deposit(amount)
+                    logger.info("Deposit successful!")
+                    print(f"Deposit successful!\nDeposit: {amount}, New balance: {new_balance}")
+                except ValueError as e:
+                    logger.warning(str(e))
+                    continue
+
+            elif operation == "3":
+
+                value = input("Enter deposit amount: ").strip()
+
+                try:
+                    amount = int(value)         
+                except ValueError:
+                    logger.warning("Amount must be a valid number")
+                    continue
+                
+                try:
+                    new_balance = self.trans.withdraw(int(amount))
+                    logger.info("Withdrawal successful!")
+                    print(f"Withdrawal successful!\nWithdrawal: {amount}, New balance: {new_balance}")
+                except ValueError as e:
+                    logger.warning(str(e))   
+
+            elif operation == "4":
+                return
+                
+            else:
+                logger.warning("Invalid Input! Try again.")
+
+        return
+
+    def account_management(self):
+        
+        for attempt in range(constants.MAX_ATTEMPTS):
+                
+            operation=input("Choose operation:\n1. Check Account Details.\n2. Update Account Details & Password.\n3. Delete Account\n4. Exit:\n\nEnter choice:")
+
+            if operation == "1":   
+                print(f"Account Number : {self.account_no}\nName : {self.name}\nPhone Number : {self.phone}\nD.O.B: {self.dob}\nBalance : {self.trans.get_balance()}")
+            elif operation == "2":       
+                self.account_update()
+                return
+            elif operation == "3":
+                self.account_delete()
+                return
+            elif operation == "4":
+                return
+            else:
+                logger.warning("Invalid Input! Try Again.")
+                    
+        return
+    
+    def account_update(self):
+        
+        for attempt in range(constants.MAX_ATTEMPTS):
+            
+            choice = input("Choose operation:\n1. Update Details.\n2. Update password\n3. Exit:\n\nEnter choice:")
+            if choice =="1":
+                
+                db = repository.load_customer_db()
+                self.name = input("Enter Full Name:").upper()
+                self.dob = input("Enter Your D.O.B (DD/MM/YYYY):")
+                ph_number = input("Enter Old/New Phone Number (Without +91):")
+
+                try:
+                    self.phone = int(ph_number)          
+                except ValueError:
+                    logger.warning("Enter a valid number")
+                    continue
+                
+                try:
+                    updated_db = self.account.update_account(self.name,self.dob,self.phone)
+                    print(f"Account Number: {self.account_no}\n{str(updated_db[self.account_no])[1:-1]}")
+                except ValueError as e:
+                    print(str(e))
+                    continue
+
+                repository.update_customer(
+                            self.account_no,
+                            {
+                                "Name": self.name,
+                                "Phone Number": self.phone,
+                                "D.O.B": self.dob
+                            }
+                        )
+                
+            elif choice =="2":
+
+                db = repository.load_customer_db()
+                old_pass = input("Enter Current Password:")
+                phone = input("Enter Your Phone Number:")
+                new_pass = input("Enter new Password:")
+                  
+                try:
+                    new_pass = self.account.password_update(old_pass, phone, new_pass)
+                except ValueError as e:
+                    print(str(e))
+                    continue
+
+                db[self.account_no]["Password"] = new_pass
+                repository.save_customer_db(db)
+                logger.info("Password Updated Successfully!")
+                
+            elif choice =="3":
+                return
+            else:
+                logger.warning("Invalid Input! Try Again.")
+        
+        return
+    
+    def account_delete(self):
+
+        for attempt in range(constants.MAX_ATTEMPTS):
+            
+            db = repository.load_customer_db()
+            acc_list = repository.load_account_numbers()
+            phone = input("Enter Phone Number:")      
+            password = input("Enter Current Password:")
+
+            try:
+                Updated_db = self.account.account_deletion(phone,password)    
+            except ValueError as e:
+                logger.warning(str(e))
+                continue
+
+            # Removing Account Number From Existing Account Number List.
+            acc_list.remove(int(self.account_no))
+            repository.save_account_numbers(acc_list)
+
+            # Removing Customer Details From Database.
+            repository.delete_customer(self.account_no)
+            
+            logger.info("Account Deleted Successfully.")
+            return                        
+        
+        return
+    
+# account_management.py
+
+from . import constants
+from . import repository
+from .logging_config import logger
+
+class Account:
+
+    def __init__(self, customer_database, account_no):
+        self.db = customer_database
+        self.account_no = account_no
+
+    @classmethod
+    def account_open(cls, name, phone, password, dob, balance):
+        
+        acc_list = repository.load_account_numbers()
+
+        if acc_list == []:
+            acc_num = str(constants.START_ACCOUNT_NUMBER + 1)
+        else:
+            for account in range(constants.START_ACCOUNT_NUMBER + 1, max(acc_list) + 2):
+                if account not in acc_list:
+                    acc_num = str(account)
+                    break
+
+        db = repository.load_customer_db()
+
+        if len(str(phone))!=10:             # Verifying Valid Mobile Number.
+            raise ValueError("Please Enter Valid Phone Number! ")
+
+        elif phone <= 0:
+            raise ValueError("Please Enter Valid Phone Number!")
+        
+        elif balance <= 0:
+            raise ValueError("Balance amount must be positive")
+
+                    
+        # Creating and handelling Object.
+        obj = cls(db, acc_num)
+            
+        try:
+
+            repository.save_account_numbers(acc_list,acc_num)       # Updating Database.
+            repository.create_customer(acc_num, name, str(phone), password, dob, balance)
+            logger.info(f"Account Created Successfully!")
+            return acc_num, db[acc_num]
+
+        except ValueError as e:
+            print(str(e))
+                    
+
+    def update_account(self, name, dob, phone):
+        
+        if len(phone)!=10:             # Verifying Valid Mobile Number.
+            raise ValueError("Please Enter Valid Phone Number! ")
+        
+        if phone <= 0:
+            raise ValueError("Please Enter Valid Phone Number!")
+        
+        # Updating Database.
+        self.db[self.account_no]["Name"] = name
+        self.db[self.account_no]["Phone Number"] = phone
+        self.db[self.account_no]["D.O.B"] = dob
+
+        return self.db
+
+    def password_update(self, old_pass, phone, new_pass):
+                    
+        if self.db[self.account_no]["Password"] != old_pass:                    # Verifying Password.
+            raise ValueError("Wrong Password! Try Again!")    
+                            
+        if self.db[self.account_no]["Phone Number"] != phone:              # Verifying Phone Number.
+            raise ValueError("Your Phone Number Does not Match.Try Again!")      
+                            
+        if self.db[self.account_no]["Password"] == new_pass:            # Verifying New Password.
+            raise ValueError("Your Password Same As Old Password. Try Again!")
+                                    
+        return new_pass
+
+    def account_deletion(self,phone,password):
+
+        if self.db[self.account_no]["Phone Number"] != phone:
+            raise ValueError("Your Phone Number Does not Match.Try Again!")
+
+        if self.db[self.account_no]["Password"] != password:
+             raise ValueError("Wrong Password.Try Again!")
+        
+        return self.db
+
+# Transaction.py
+
+from . import repository
+
+class Transaction:
+
+    def __init__(self, account_no):
+        self.account_no = account_no
+
+    def deposit(self, amount):
+        current = self.get_balance()
+
+        if amount <= 0:
+            raise ValueError("Deposit amount must be positive")
+
+        new_balance = current + amount
+        repository.update_balance(self.account_no, new_balance)
+        return new_balance
+
+    def withdraw(self, amount):
+        current = self.get_balance()
+    
+        if amount <= 0:
+            raise ValueError("Withdrawal amount must be positive")
+
+        if amount > current:
+            raise ValueError("Insufficient balance")
+        
+        new_balance = current - amount
+        repository.update_balance(self.account_no, new_balance)
+        return new_balance
+
+    def get_balance(self):
+        customer = repository.get_customer(self.account_no)
+        return customer["Balance"]
+
+# Repository.py
+
+import json
+from . import constants
+
+
+# ---------- Admin Database ----------
+
+def load_admin_db():
+    try:
+        with open(constants.ADMIN_DB, "r+") as file:
+            content = file.read().strip()
+    except (FileNotFoundError, FileExistsError):
+        with open(constants.ADMIN_DB, "w+") as file:
+            content = file.read().strip()
+
+    if content == "":
+        administrative_database = {}
+    else:
+        administrative_database = json.loads(content)
+
+    return administrative_database
+
+
+def save_admin_db(administrative_database):
+    with open(constants.ADMIN_DB, "w") as file:
+        json.dump(administrative_database, file, indent=2)
+
+
+# ---------- Customer Database ----------
+
+def load_customer_db():
+    try:
+        with open(constants.CUSTOMER_DB, "r+") as file:
+            content = file.read().strip()
+    except (FileNotFoundError, FileExistsError):
+        with open(constants.CUSTOMER_DB, "w+") as file:
+            content = file.read().strip()
+
+    if content == "":
+        customer_database = {}
+    else:
+        customer_database = json.loads(content)
+
+    return customer_database
+
+
+def save_customer_db(customer_database):
+    with open(constants.CUSTOMER_DB, "w") as file:
+        json.dump(customer_database, file, indent=2, sort_keys=True)
+
+
+# ---------- Account Numbers ----------
+
+def load_account_numbers():
+    acc_list = []
+
+    try:
+        with open(constants.ACCOUNT_NUMBERS, "r+") as file:
+            for line in file:
+                line = line.strip()
+                if line.isdigit():
+                    acc_list.append(int(line))
+        acc_list.sort()
+
+    except FileNotFoundError:
+        with open(constants.ACCOUNT_NUMBERS, "w") as file:
+            pass
+
+    return acc_list
+
+
+def save_account_numbers(acc_list, acc_num):
+    if acc_num in acc_list:
+        raise ValueError("Account already exists")
+    else:
+        acc_list.append(int(acc_num))
+
+    with open(constants.ACCOUNT_NUMBERS, "w") as file:
+        for num in acc_list:
+            file.write(f"{num}\n")
+
+
+# ---------- Repository Helper Functions ----------
+
+def create_customer(account_no, name, phone, password, dob, balance):
+    db = load_customer_db()
+
+    if str(account_no) in db:
+        raise ValueError("Account already exists")
+
+    db[str(account_no)] = {
+        "Name": name,
+        "Phone Number": phone,
+        "Password": password,
+        "D.O.B": dob,
+        "Balance": balance
+    }
+
+    save_customer_db(db)
+
+
+def customer_exists(account_no):
+    db = load_customer_db()
+    return str(account_no) in db
+
+
+def get_customer(account_no):
+    db = load_customer_db()
+    return db.get(str(account_no))
+
+
+def create_customer(account_no, name, phone, password, dob, balance):
+    db = load_customer_db()
+
+    if str(account_no) in db:
+        raise ValueError("Account already exists")
+
+    db[str(account_no)] = {
+        "Name": name,
+        "Phone Number": phone,
+        "Password": password,
+        "D.O.B": dob,
+        "Balance": balance
+    }
+
+    save_customer_db(db)
+
+ALLOWED_FIELDS = {"Name", "Phone Number", "Password", "D.O.B", "Balance"}
+
+def update_customer(account_no, updated_fields: dict):
+    db = load_customer_db()
+
+    if str(account_no) not in db:
+        raise KeyError("Account not found!")
+
+    for key in updated_fields:
+        if key not in ALLOWED_FIELDS:
+            raise ValueError(f"Invalid field: {key}")
+
+    db[str(account_no)].update(updated_fields)
+    save_customer_db(db)
+
+
+# ---------- Business Operations ----------
+
+def update_balance(account_no, new_balance):
+    update_customer(account_no, {"Balance": new_balance})
+
+
+def delete_customer(account_no):
+    db = load_customer_db()
+
+    if str(account_no) not in db:
+        raise KeyError("Account not found")
+
+    db.pop(str(account_no))
+    save_customer_db(db)
+# Bank.py
+
+from . import admin
+from . import customer
+from .logging_config import logger
+from . import constants
+
+
+class Bank:
+
+    @staticmethod
+    def greet():
+        print("*********************************************************")
+        print("**************** Welcome To Python Bank *****************")
+        print("*********************************************************")
+
+
+    def welcome_menu (self):
+
+        attempt = 0
+        while attempt<constants.MAX_ATTEMPTS:
+            ans = input ("Choose An Option.\n1. Administrative Login. \n2. Customer Login. \n3. Exit:\n\nEnter choice:")
+                
+            if ans == "1":
+                admin.Admin.verification()
+                return            
+            elif ans == "2":
+                customer.Customer.main_menu()
+                return
+            elif ans == "3":
+                break
+            else: 
+                logger.warning("Invalid Input! Try again.\n")
+
+            attempt += 1
+        return
+
+    @staticmethod
+    def farewell():
+        
+        print("*******************************************************")
+        print("*********** Thank You For Using Python Bank ***********")
+        print("*******************************************************")
+
+# main.py
+
+from banking import bank
+
+if __name__ == "__main__":        # Opens A file, Wr2ites a label Called "main".
+
+    try:
+
+        #bank = Bank()                 # Creates object Like Built A House
+        bank.Bank().greet()
+        bank.Bank().welcome_menu()    # Gateway Of The House
+
+    except ValueError as e:
+
+        if e:
+            print(f"Error: {e}")
+        elif not e:
+            print("Unexpected error occurred. Please contact support.")
+
+    finally:
+        bank.Bank().farewell()
+
+
